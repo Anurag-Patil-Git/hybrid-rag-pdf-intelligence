@@ -24,7 +24,7 @@ evaluation/manual_reviews/*
 !evaluation/manual_reviews/template.json
 
 # Local screenshot captures (instructions live in docs/screenshots/README.md)
-docs/screenshots/*.png
+
 docs/screenshots/*.jpg
 docs/screenshots/*.jpeg
 docs/screenshots/*.webp

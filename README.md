@@ -206,18 +206,32 @@ latency in this run.
 
 ## Screenshots
 
-Add captures under [`docs/screenshots/`](docs/screenshots/README.md).
+## Screenshots
 
-  Application page   Suggested filename
-  ------------------ --------------------------------------
-  Dashboard          `docs/screenshots/01-dashboard.png`
-  AI Chat            `docs/screenshots/02-chat.png`
-  Document Library   `docs/screenshots/03-library.png`
-  Chat History       `docs/screenshots/04-history.png`
-  RAG Evaluation     `docs/screenshots/05-evaluation.png`
+### 1. Dashboard
+Overview of the application and its key metrics.
 
-Add image embeds after the screenshots have been captured so the README
-does not show broken image links.
+![Dashboard](docs/screenshots/01-dashboard.png)
+
+### 2. AI Chat
+Ask questions about uploaded PDF documents using the RAG pipeline.
+
+![AI Chat](docs/screenshots/02-chat.png)
+
+### 3. Document Library
+Manage and explore uploaded documents.
+
+![Document Library](docs/screenshots/03-library.png)
+
+### 4. Chat History
+Review previous conversations.
+
+![Chat History](docs/screenshots/04-history.png)
+
+### 5. RAG Evaluation
+Evaluate retrieval performance using the supported metrics.
+
+![RAG Evaluation](docs/screenshots/05-evaluation.png)
 
 ## Installation
 
