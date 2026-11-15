@@ -1,0 +1,12 @@
+{
+  "description": "Manual answer-quality reviews. Scores are reviewer judgment, not automatic ground truth.",
+  "scale": "Use 0.0–1.0 or leave null if not reviewed.",
+  "reviews": [
+    {
+      "question_id": "q001",
+      "faithfulness": null,
+      "answer_relevance": null,
+      "notes": "Inspect the generated answer, context, and citations before scoring."
+    }
+  ]
+}

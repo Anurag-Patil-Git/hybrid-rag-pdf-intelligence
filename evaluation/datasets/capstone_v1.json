@@ -1,0 +1,482 @@
+{
+  "dataset_version": "capstone-v1",
+  "description": "Manually labelled questions from inspected PDFs: LangChain component notes (sample.pdf / langchain_components.pdf) and Non-Native Prompt Engineering Risks. Labels use doc_key + page. chunk_ids are null until filled after a chunk inventory. document_id values are resolved at runtime from the registry.",
+  "documents": [
+    {
+      "doc_key": "langchain",
+      "match_original_filename": "langchain_components.pdf",
+      "match_stored_filename_contains": "langchain_components.pdf",
+      "notes": "sample.pdf is a duplicate of the same notes; prefer the langchain_components original name when both exist."
+    },
+    {
+      "doc_key": "prompt_risks",
+      "match_original_filename": "Non-Native Prompt Engineering Risks - Google Gemini.pdf",
+      "match_stored_filename_contains": "Non-Native Prompt Engineering Risks",
+      "notes": "Match by original filename or stored-filename substring."
+    }
+  ],
+  "questions": [
+    {
+      "question_id": "q001",
+      "question": "What are the six major LangChain components?",
+      "verified": true,
+      "expected_answer_criteria": "Lists Models, Prompts, Chains, Memory, Indexes, Agents.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 1,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q002",
+      "question": "Which LangChain component is explored first in the notes?",
+      "verified": true,
+      "expected_answer_criteria": "Mentions the Model component.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 1,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q003",
+      "question": "What API problem do different LLM providers create?",
+      "verified": true,
+      "expected_answer_criteria": "Different providers expose different APIs/code styles and switching requires rewriting code.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 2,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q004",
+      "question": "How does LangChain solve provider API differences for models?",
+      "verified": true,
+      "expected_answer_criteria": "Provides a standardized interface so only a few lines change when switching providers.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 2,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q005",
+      "question": "What input/output behaviour do embedding models follow?",
+      "verified": true,
+      "expected_answer_criteria": "Text-in, vector-out.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 3,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q006",
+      "question": "Name uses of embedding models listed in the notes.",
+      "verified": true,
+      "expected_answer_criteria": "Includes semantic search, RAG, similarity matching, clustering/indexing.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 3,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q007",
+      "question": "What are the two model types highlighted in the Model Component summary?",
+      "verified": true,
+      "expected_answer_criteria": "Language models and embedding models.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 4,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q008",
+      "question": "What is the key takeaway of LangChain's Model Component?",
+      "verified": true,
+      "expected_answer_criteria": "It standardizes talking to LLMs so providers can be switched without rewriting the codebase.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 4,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q009",
+      "question": "What kinds of prompts does LangChain's Prompt component help design?",
+      "verified": true,
+      "expected_answer_criteria": "Dynamic, role-based, few-shot, structured prompts / templates with placeholders.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 5,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q010",
+      "question": "Give an example of a dynamic prompt template from the notes.",
+      "verified": true,
+      "expected_answer_criteria": "Mentions a template like Summarize {topic} in {tone}.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 5,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q011",
+      "question": "What are few-shot prompts used for according to the notes?",
+      "verified": true,
+      "expected_answer_criteria": "Showing examples first; used in customer support, classification, pattern tasks.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 6,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q012",
+      "question": "Why is the product named LangChain according to the notes?",
+      "verified": true,
+      "expected_answer_criteria": "The name comes from the idea of Chains as pipelines of steps.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 7,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q013",
+      "question": "What is a Chain in LangChain?",
+      "verified": true,
+      "expected_answer_criteria": "A pipeline where the output of one step becomes the input of the next.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 7,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q014",
+      "question": "What are sequential chains ideal for?",
+      "verified": true,
+      "expected_answer_criteria": "Examples like translate→summarize, extract→validate→format, retrieve→answer.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 8,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q015",
+      "question": "How can a sentiment-based chain route user feedback?",
+      "verified": true,
+      "expected_answer_criteria": "Positive feedback gets a thank-you path; negative feedback can email support.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 9,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q016",
+      "question": "Why are Indexes needed for private documents?",
+      "verified": true,
+      "expected_answer_criteria": "LLMs are trained on public data; indexes let the model use private/internal documents.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 10,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q017",
+      "question": "Why do text splitters break large documents into chunks?",
+      "verified": true,
+      "expected_answer_criteria": "Large documents cannot be embedded directly; chunks prepare text for semantic search.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 11,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q018",
+      "question": "Describe the process to answer questions from a company rules PDF using indexes.",
+      "verified": true,
+      "expected_answer_criteria": "Load PDF, split into chunks, create embeddings/vector store, then retrieve.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 12,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q019",
+      "question": "Which four index-related pieces work together for semantic search?",
+      "verified": true,
+      "expected_answer_criteria": "Document loaders, text splitters, vector stores, and retrievers.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 13,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q020",
+      "question": "What is the limitation of storing full conversation history in memory?",
+      "verified": true,
+      "expected_answer_criteria": "Long conversations increase token cost heavily.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 14,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q021",
+      "question": "What does ConversationBufferWindowMemory store?",
+      "verified": true,
+      "expected_answer_criteria": "Only the last N interactions / a window of recent messages.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 14,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q022",
+      "question": "What do LangChain Agents allow you to build?",
+      "verified": true,
+      "expected_answer_criteria": "AI agents that can reason and use tools / act beyond plain chatbots.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 15,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q023",
+      "question": "What reasoning technique is mentioned for agents?",
+      "verified": true,
+      "expected_answer_criteria": "Chain-of-Thought reasoning / step-by-step planning.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 16,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q024",
+      "question": "What kinds of tools can agents access?",
+      "verified": true,
+      "expected_answer_criteria": "External tools such as APIs, web search, and similar actions.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 16,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q025",
+      "question": "Why do AI agents matter compared with chatbots?",
+      "verified": true,
+      "expected_answer_criteria": "They can fetch live info, run workflows, multi-step tasks, interact with systems.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 17,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q026",
+      "question": "Which pages discuss embedding models and providers?",
+      "verified": true,
+      "expected_answer_criteria": "Should cite pages covering embedding models and supported providers.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 3,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q027",
+      "question": "Where does the notes section on Memory begin?",
+      "verified": true,
+      "expected_answer_criteria": "Mentions Memory as a LangChain component around the later pages.",
+      "relevant": [
+        {
+          "doc_key": "langchain",
+          "page": 13,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q028",
+      "question": "What company is used as the AI-native SaaS example in the prompt-engineering risks document?",
+      "verified": true,
+      "expected_answer_criteria": "Worktual.",
+      "relevant": [
+        {
+          "doc_key": "prompt_risks",
+          "page": 1,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q029",
+      "question": "Why can a polite customer-support system prompt fall short?",
+      "verified": true,
+      "expected_answer_criteria": "Vague instructions like speak nicely / apologize a lot create a fake, overly subservient tone.",
+      "relevant": [
+        {
+          "doc_key": "prompt_risks",
+          "page": 2,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q030",
+      "question": "What speech-related cues are missing when prompts lack cadence guidance?",
+      "verified": true,
+      "expected_answer_criteria": "Pauses, interruptions, or backchanneling such as Mm-hmm.",
+      "relevant": [
+        {
+          "doc_key": "prompt_risks",
+          "page": 3,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q031",
+      "question": "Why is 'Speak in a friendly voice' ineffective for audio prompts?",
+      "verified": true,
+      "expected_answer_criteria": "It is vague and does not give effective audio/voice instructions.",
+      "relevant": [
+        {
+          "doc_key": "prompt_risks",
+          "page": 3,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q032",
+      "question": "What specialized tasks need rigorous system prompts according to the document?",
+      "verified": true,
+      "expected_answer_criteria": "Code review and debugging.",
+      "relevant": [
+        {
+          "doc_key": "prompt_risks",
+          "page": 4,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q033",
+      "question": "What evaluation criteria are mentioned for prompt output quality?",
+      "verified": true,
+      "expected_answer_criteria": "Tone alignment, adherence to constraints, and hallucination rate.",
+      "relevant": [
+        {
+          "doc_key": "prompt_risks",
+          "page": 5,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q034",
+      "question": "What is regression testing used for in prompt changes?",
+      "verified": true,
+      "expected_answer_criteria": "Catching cases where a tweak breaks native nuance, tone, or constraints.",
+      "relevant": [
+        {
+          "doc_key": "prompt_risks",
+          "page": 5,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q035",
+      "question": "Which document discusses risks of non-native writers creating system prompts?",
+      "verified": true,
+      "expected_answer_criteria": "The Non-Native Prompt Engineering Risks document.",
+      "relevant": [
+        {
+          "doc_key": "prompt_risks",
+          "page": 1,
+          "chunk_ids": null
+        }
+      ]
+    },
+    {
+      "question_id": "q_unverified_001",
+      "question": "Draft only: compare Memory types with production recommendations.",
+      "verified": false,
+      "expected_answer_criteria": "Not labelled yet; excluded from scoring until verified.",
+      "relevant": []
+    }
+  ]
+}

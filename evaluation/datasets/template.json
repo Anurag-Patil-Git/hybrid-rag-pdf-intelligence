@@ -1,0 +1,34 @@
+{
+  "dataset_version": "template-0.1",
+  "description": "Copy this file and fill verified questions after inspecting PDFs. Never invent labels.",
+  "documents": [
+    {
+      "doc_key": "example_doc",
+      "match_original_filename": "example.pdf",
+      "match_stored_filename_contains": null,
+      "notes": "Prefer match_original_filename. document_id is resolved at runtime."
+    }
+  ],
+  "questions": [
+    {
+      "question_id": "q_unverified_example",
+      "question": "Replace with a real question after reading the PDF.",
+      "verified": false,
+      "expected_answer_criteria": "Not yet labelled.",
+      "relevant": []
+    },
+    {
+      "question_id": "q_verified_example",
+      "question": "What component names appear on page 1?",
+      "verified": true,
+      "expected_answer_criteria": "Must mention the labelled page content accurately.",
+      "relevant": [
+        {
+          "doc_key": "example_doc",
+          "page": 1,
+          "chunk_ids": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Runtime data (user PDFs, SQLite databases, vector store)
+data/*
+!data/uploads/
+data/uploads/*
+!data/uploads/.gitkeep
+vector_db/*
+!vector_db/.gitkeep
+# Safety net if DBs are ever created at repo root
+documents.db
+conversations.db
+*.db
+
+# Evaluation run outputs contain retrieved chunk text and local registry IDs.
+# Keep the folder, publish aggregate summaries under docs/ instead.
+evaluation/results/*
+!evaluation/results/.gitkeep
+evaluation/manual_reviews/*
+!evaluation/manual_reviews/.gitkeep
+!evaluation/manual_reviews/template.json
+
+# Local screenshot captures (instructions live in docs/screenshots/README.md)
+docs/screenshots/*.png
+docs/screenshots/*.jpg
+docs/screenshots/*.jpeg
+docs/screenshots/*.webp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Model / Hugging Face caches (if created inside the project)
+.cache/
+models/
+**/sentence-transformers/
+**/torch_extensions/
+
+# Logs and temp
+*.log
+*.tmp
+*.part
+.DS_Store
+Thumbs.db
+
+# Personal resume exports (keep local; do not publish with the project)
+Anurag_Patil_GenAI_Resume.docx
+Anurag_Patil_GenAI_Resume.pdf
+Anurag_Patil_GenAI_Resume.txt
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
