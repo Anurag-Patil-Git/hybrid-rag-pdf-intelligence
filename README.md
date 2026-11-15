@@ -1,352 +1,470 @@
-# RAG PDF Intelligence
+# Hybrid RAG PDF Intelligence
 
-Local, **CPU-only** conversational question answering over your own PDFs.
+A local, CPU-friendly Retrieval-Augmented Generation (RAG) application
+for asking grounded questions across PDF documents.
 
-FastAPI backend · Streamlit multipage UI · ChromaDB dense retrieval · BM25 · Reciprocal Rank Fusion · MMR · cross-encoder reranking · Ollama (Qwen 2.5 3B) · SQLite document registry and chat history · offline evaluation harness.
+The project combines a **FastAPI backend**, **Streamlit multipage
+interface**, **dense and sparse retrieval**, **Reciprocal Rank Fusion
+(RRF)**, **MMR**, **cross-encoder reranking**, and a locally hosted
+**Qwen 2.5 3B** model through Ollama.
 
-> **Status:** Capstone Phases 2–6 are complete (reliability, multi-document chat, UI, evaluation, QA). This is a portfolio / demo system, **not** a hosted production product. Authentication and multi-user isolation are not implemented.
+> **Status:** Portfolio/demo project, not a hosted production service.
+> Authentication and multi-user isolation are not implemented.
 
+## Overview
 
----
+Teams often need answers grounded in internal PDFs while keeping
+document content under local control. A basic chat interface does not
+necessarily provide reliable document scoping, traceable citations,
+conversational follow-ups, or a way to measure retrieval quality.
 
-## Problem statement
-
-Teams often need answers grounded in internal PDFs without sending documents to a cloud LLM. Generic chat UIs also struggle with multi-document scope, citations, and proving whether retrieval quality improved after pipeline changes.
-
-This project addresses that with:
-
-1. A local RAG stack that keeps PDFs, vectors and conversation history on disk.
-2. Explicit multi-document selection enforced through every retrieval stage.
-3. An offline evaluation framework that compares retrieval modes on manually labelled questions.
-
----
+This project provides: 1. A local document-question-answering workflow.
+2. Explicit multi-document selection applied throughout retrieval. 3.
+Source citations containing document and page information. 4. Hybrid
+dense and keyword retrieval followed by reranking. 5. An offline
+evaluation harness for comparing retrieval strategies.
 
 ## Key features
 
-- PDF upload, duplicate detection (SHA-256), replace, delete and startup reconciliation
-- Hybrid retrieval: dense (Chroma) + BM25 fused with Reciprocal Rank Fusion
-- MMR diversification and MiniLM cross-encoder reranking
-- Conversational follow-ups via query rewriting and SQLite history
-- Multi-document chat by registry `document_ids` (or all indexed docs)
-- Citations with original filename, page, chunk id and text snippet
-- Streamlit multipage UI: Dashboard, AI Chat, Document Library, Chat History, RAG Evaluation
-- Offline evaluation: Precision@K, Recall@K, MRR, latency across four retrieval modes
-- Hermetic pytest suite (temporary dirs; does not mutate real `data/` / `vector_db/`)
-
----
+-   PDF upload, SHA-256 duplicate detection, replace, delete, and
+    startup reconciliation.
+-   Hybrid retrieval: ChromaDB dense retrieval combined with BM25 and
+    RRF.
+-   MMR diversification and MiniLM cross-encoder reranking.
+-   Conversational follow-ups using query rewriting and SQLite-backed
+    chat history.
+-   Multi-document chat using `document_ids`, or search across all
+    indexed documents.
+-   Citations with original filename, page, chunk ID, and text snippet.
+-   Streamlit pages: Dashboard, AI Chat, Document Library, Chat History,
+    and RAG Evaluation.
+-   Offline evaluation using Precision@K, Recall@K, MRR, and latency.
+-   Hermetic pytest suites designed not to modify live upload/vector
+    database directories.
 
 ## Technology stack
 
-| Layer | Choice |
-|---|---|
-| Language | Python 3.10 |
-| API | FastAPI, Uvicorn |
-| UI | Streamlit |
-| PDF text | PyMuPDF |
-| Chunking | LangChain recursive character splitter |
-| Embeddings | `sentence-transformers/all-MiniLM-L6-v2` (CPU) |
-| Vector DB | ChromaDB |
-| Sparse retrieval | rank-bm25 |
-| Reranker | `cross-encoder/ms-marco-MiniLM-L-6-v2` (CPU) |
-| LLM | Ollama `qwen2.5:3b` |
-| Persistence | SQLite (`documents.db`, `conversations.db`) |
+  Layer              Technology
+  ------------------ ------------------------------------------
+  Language           Python 3.10
+  API                FastAPI, Uvicorn
+  Frontend           Streamlit
+  PDF extraction     PyMuPDF
+  Text splitting     LangChain RecursiveCharacterTextSplitter
+  Embeddings         `sentence-transformers/all-MiniLM-L6-v2`
+  Vector database    ChromaDB
+  Sparse retrieval   BM25 (`rank-bm25`)
+  Fusion             Reciprocal Rank Fusion
+  Diversification    Maximal Marginal Relevance
+  Reranker           `cross-encoder/ms-marco-MiniLM-L-6-v2`
+  Local LLM          Ollama `qwen2.5:3b`
+  Persistence        SQLite
 
----
+## Architecture
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+``` mermaid
+flowchart LR
+    UI[Streamlit multipage UI] -->|HTTP| API[FastAPI]
+    API --> DS[Document Service and Registry]
+    API --> RAG[RAG Pipeline]
+    API --> CM[Conversation Manager]
+    DS --> PDF[PyMuPDF extraction]
+    PDF --> SPLIT[Recursive text chunking]
+    SPLIT --> EMB[MiniLM embeddings]
+    EMB --> CH[(ChromaDB)]
+    SPLIT --> BM25[(BM25 index)]
+    RAG --> QR[Query rewriting]
+    QR --> RET[Dense and BM25 retrieval]
+    RET --> RRF[Reciprocal Rank Fusion]
+    RRF --> MMR[MMR]
+    MMR --> CE[Cross-encoder reranking]
+    CE --> CTX[Context and citations]
+    CTX --> LLM[Ollama Qwen 2.5 3B]
+    LLM --> API
+    CM <--> DB[(SQLite conversation history)]
+    DS <--> REG[(SQLite document registry)]
+    EVAL[Offline evaluation] -.-> CH
+    EVAL -.-> BM25
+```
+
+## Document ingestion
+
+``` text
+PDF upload
+  -> validate file type, size, and PDF header
+  -> calculate SHA-256 and check for duplicates
+  -> save uploaded file
+  -> create/update document registry state
+  -> extract page text with PyMuPDF
+  -> split text into chunks
+  -> create embeddings and index chunks in ChromaDB
+  -> build/update BM25 index
+  -> mark document as indexed
+```
+
+Default chunk configuration: **1,000 characters** with **200 characters
+overlap**.
+
+Document replacement uses a journalled operation recorded in the
+`operations` table. Startup reconciliation handles interrupted upload,
+replace, and delete operations.
+
+## Retrieval and answer generation
+
+``` text
+Question + session ID + optional document IDs
+  -> resolve indexed document scope
+  -> load conversation history
+  -> rewrite follow-up as a standalone query when needed
+  -> dense retrieval and BM25 retrieval
+  -> Reciprocal Rank Fusion
+  -> MMR diversification
+  -> cross-encoder reranking
+  -> build context and source citations
+  -> generate grounded answer with local Qwen model
+  -> persist conversation messages in SQLite
+```
+
+If retrieved context does not contain enough information, the
+application can return its configured no-answer response rather than
+inventing an answer. No-answer responses should not expose supporting
+citations.
+
+## Retrieval components
+
+  -----------------------------------------------------------------------
+  Component                           Purpose
+  ----------------------------------- -----------------------------------
+  Dense retrieval                     Finds semantically similar chunks
+                                      using MiniLM embeddings stored in
+                                      ChromaDB.
+
+  BM25                                Retrieves chunks using lexical
+                                      keyword matching.
+
+  RRF                                 Combines ranked dense and BM25
+                                      results.
+
+  MMR                                 Reduces redundancy and diversifies
+                                      selected results.
+
+  Cross-encoder                       Scores query/chunk pairs and
+                                      reranks candidates before context
+                                      construction.
+  -----------------------------------------------------------------------
+
+The offline comparison evaluates dense, BM25, hybrid RRF, and
+hybrid-plus-reranking modes on the same labelled questions and top-K
+setting. Conversation rewriting and MMR are not included in that
+comparison, keeping evaluated retrieval modes comparable.
+
+## Multi-document behaviour
+
+-   The UI can send `document_ids` to scope a question to selected
+    documents.
+-   If `document_ids` is omitted, retrieval can search all indexed
+    documents.
+-   An empty `document_ids` list is rejected with HTTP `422`.
+-   The legacy `source` filename parameter is supported.
+-   Conflicting `source` and `document_ids` values are rejected.
+-   Document filters are applied to dense and sparse retrieval so
+    out-of-scope chunks do not enter the final context.
+
+## Evaluation
+
+See [`evaluation/README.md`](evaluation/README.md) for the methodology.
+
+-   Dataset: `evaluation/datasets/capstone_v1.json`
+-   Labelled questions: 35
+-   Labels: document key and page, with optional chunk IDs
+-   Modes: dense, BM25, hybrid RRF, and hybrid reranking
+-   Metrics: Precision@K, Recall@K, MRR, and mean latency
+-   Citation page matching is a proxy; faithfulness and answer relevance
+    require manual review.
+
+Full per-question results are kept locally and ignored by Git because
+they can contain document text. The aggregate summary is in
+[`docs/evaluation_results.md`](docs/evaluation_results.md).
+
+### Recorded retrieval results
+
+Documented CPU run: `20261114T121437Z_e1eca06c`, top-K = 5, 35 labelled
+questions.
+
+  Retrieval mode         Precision@5   Recall@5      MRR   Mean latency
+  -------------------- ------------- ---------- -------- --------------
+  Dense                       0.2514     0.9429   0.7295       0.0183 s
+  BM25                        0.2457     0.9429   0.8381       0.0004 s
+  Hybrid (RRF)                0.2743     1.0000   0.8857       0.0194 s
+  Hybrid + reranking          0.2743     1.0000   0.9095       0.6048 s
+
+These are experimental measurements on the labelled evaluation corpus,
+not production service-level objectives. Reranking increases retrieval
+latency in this run.
 
 ## Screenshots
 
-Add captures under [`docs/screenshots/`](docs/screenshots/README.md). Placeholders:
+Add captures under [`docs/screenshots/`](docs/screenshots/README.md).
 
-| Page | File |
-|---|---|
-| Dashboard | `docs/screenshots/01-dashboard.png` |
-| AI Chat | `docs/screenshots/02-chat.png` |
-| Document Library | `docs/screenshots/03-library.png` |
-| Chat History | `docs/screenshots/04-history.png` |
-| RAG Evaluation | `docs/screenshots/05-evaluation.png` |
+  Application page   Suggested filename
+  ------------------ --------------------------------------
+  Dashboard          `docs/screenshots/01-dashboard.png`
+  AI Chat            `docs/screenshots/02-chat.png`
+  Document Library   `docs/screenshots/03-library.png`
+  Chat History       `docs/screenshots/04-history.png`
+  RAG Evaluation     `docs/screenshots/05-evaluation.png`
 
-After you save the PNG files above, uncomment or add the image embeds in a follow-up commit. Until then this section stays as placeholders so the README does not show broken images on GitHub.
+Add image embeds after the screenshots have been captured so the README
+does not show broken image links.
 
----
+## Installation
 
-## System architecture
+### 1. Create a Python environment
 
-See also [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-
-```mermaid
-flowchart LR
-  UI[Streamlit multipage UI] -->|HTTP| API[FastAPI main.py]
-  API --> DS[DocumentService + Registry]
-  API --> CM[ConversationManager]
-  API --> RAG[RAGPipeline]
-  DS --> PDF[PyMuPDF + chunking]
-  PDF --> EMB[MiniLM embeddings]
-  EMB --> CH[(ChromaDB)]
-  PDF --> BM25[(BM25 index)]
-  RAG --> QR[Query rewrite]
-  QR --> HY[Hybrid RRF]
-  HY --> CH
-  HY --> BM25
-  HY --> MMR[MMR]
-  MMR --> CE[Cross-encoder]
-  CE --> CTX[Context + citations]
-  CTX --> LLM[Ollama Qwen 2.5 3B]
-  RAG --> CM
-  EVAL[backend.evaluation CLI] -.-> CH
-  EVAL -.-> BM25
-  EVAL -.-> CE
-  EVALUI[Evaluation page] -.-> RES[evaluation/results JSON]
-```
-
----
-
-## Document ingestion pipeline
-
-```
-Upload PDF
-  → validate type/size (%PDF- header)
-  → SHA-256 duplicate check (SQLite unique file_hash)
-  → store under data/uploads/<uuid>_<name>.pdf
-  → registry status = processing
-  → PyMuPDF page text (empty pages skipped)
-  → recursive chunks (default size 1000, overlap 200)
-  → Chroma vectors + BM25 rebuild
-  → registry status = indexed
-```
-
-Replace is journalled (`operations` table): old version stays searchable until the registry switches, then old vectors/files are cleaned up. Interrupted delete/replace/upload states are finished or rolled back by `DocumentService.reconcile()` at API startup.
-
----
-
-## Retrieval and generation pipeline
-
-```
-Question + session_id (+ optional document_ids)
-  → resolve_search: indexed docs only; build Chroma/BM25 filters + citation labels
-  → load chat history
-  → rewrite follow-up into a standalone query (Ollama)
-  → hybrid search (dense + BM25 + RRF)
-  → MMR
-  → cross-encoder rerank (top_n final context chunks)
-  → build_context + citations (snippet ≤ 400 chars)
-  → grounded Qwen answer (or fixed no-answer sentence)
-  → persist user/assistant messages in SQLite
-```
-
-A no-answer response returns `citations: []` in both the HTTP body and stored metadata.
-
----
-
-## Dense, BM25, RRF, MMR and reranking
-
-| Stage | Role in this repo |
-|---|---|
-| **Dense** | Chroma cosine similarity over MiniLM embeddings (`vector_store.search_documents`) |
-| **BM25** | Keyword ranking over the same chunk corpus (`bm25_retriever.search`) |
-| **RRF** | Reciprocal Rank Fusion in `hybrid_retriever.py` (`score += 1/(k+rank)`, default `k=60`) |
-| **MMR** | Diversifies hybrid hits before reranking (`mmr.py`) |
-| **Rerank** | Cross-encoder scores query–chunk pairs and keeps the top `final_k` (`reranker.py`) |
-
-Offline evaluation compares dense, BM25, hybrid (RRF) and hybrid+rerank **without** conversation rewrite or MMR, so modes stay comparable.
-
----
-
-## Multi-document chat
-
-- UI sends `document_ids` for an explicit selection.
-- Omitting `document_ids` searches every **indexed** document.
-- `document_ids: []` is rejected (`422`).
-- Legacy `source` (stored filename) still works; conflicting `source` + `document_ids` → `422`.
-- Filters apply to dense and BM25; chunks outside the selection are dropped before context/citations.
-
----
-
-## Evaluation methodology
-
-Documented in [`evaluation/README.md`](evaluation/README.md).
-
-- Manually labelled dataset: `evaluation/datasets/capstone_v1.json` (35 verified questions).
-- Labels use `doc_key` + page (optional `chunk_ids`); registry IDs are resolved at runtime.
-- Modes: dense, BM25, hybrid, hybrid_rerank on the **same** questions and top-K.
-- Metrics: Precision@K, Recall@K (distinct labelled units), MRR, latency.
-- Citation page match is a **proxy** only; faithfulness / answer relevance are manual.
-- Full per-question JSON under `evaluation/results/` is gitignored (contains chunk text). Public aggregate summary: [`docs/evaluation_results.md`](docs/evaluation_results.md).
-
----
-
-## Actual evaluation results
-
-Latest verified retrieval run: **`20261114T121437Z_e1eca06c`**, top_k=5, 35 questions, CPU.
-
-| Mode | P@5 | R@5 | MRR | Mean latency |
-|---|---|---|---|---|
-| dense | 0.2514 | 0.9429 | 0.7295 | 0.0183 s |
-| bm25 | 0.2457 | 0.9429 | 0.8381 | 0.0004 s |
-| hybrid | 0.2743 | 1.0000 | 0.8857 | 0.0194 s |
-| hybrid + rerank | 0.2743 | 1.0000 | 0.9095 | 0.6048 s |
-
-These are experimental measurements on the labelled notes corpus, not production SLOs.
-
----
-
-## Installation (CPU)
-
-```bash
-# From the project root (the folder that contains backend/ and frontend/)
+``` bash
 conda create -n rag-pdf python=3.10 -y
 conda activate rag-pdf
-
-# CPU PyTorch first — do not install CUDA wheels for this project
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-pip install -r requirements-dev.txt
-
-cp .env.example .env   # optional on Linux; defaults work
 ```
 
-On Windows: `copy .env.example .env`. Cross-platform behaviour is intended, but this packaging pass was validated on Linux.
+### 2. Install CPU PyTorch
 
----
+``` bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+```
 
-## Ollama / Qwen setup
+### 3. Install project dependencies
 
-1. Install [Ollama](https://ollama.com).
-2. Pull the model used by `backend/llm.py`:
+``` bash
+pip install -r requirements.txt
+```
 
-```bash
+### 4. Configure environment variables
+
+Linux/macOS:
+
+``` bash
+cp .env.example .env
+```
+
+Windows PowerShell:
+
+``` powershell
+Copy-Item .env.example .env
+```
+
+The application defaults can be used for a local run. Edit `.env` only
+when local overrides are needed.
+
+## Ollama setup
+
+1.  Install [Ollama](https://ollama.com).
+2.  Download the model:
+
+``` bash
 ollama pull qwen2.5:3b
 ```
 
-3. Keep Ollama running (default `http://127.0.0.1:11434`).
-4. `/health` reports `llm_available` separately. A model outage marks the API **degraded**, not unavailable.
+3.  Ensure Ollama is running at `http://127.0.0.1:11434`.
 
----
+The API health endpoint reports LLM availability separately. A model
+outage can leave the API running in a degraded state.
 
-## Run backend and frontend
+## Run the application
 
-```bash
-# terminal 1 — models load at startup (slow on CPU the first time)
+Start the backend from the project root:
+
+``` bash
 uvicorn backend.main:app --host 127.0.0.1 --port 8000
+```
 
-# terminal 2 — from the same project root
+In a second terminal, from the same project root:
+
+``` bash
 streamlit run frontend/app.py
 ```
 
-- API docs: <http://127.0.0.1:8000/docs>
-- UI: URL printed by Streamlit (usually <http://127.0.0.1:8501>)
+-   API documentation: `http://127.0.0.1:8000/docs`
+-   Streamlit UI: usually `http://127.0.0.1:8501`
 
----
+The first startup can take longer because embedding and reranking models
+may need to be loaded or downloaded.
 
 ## Evaluation commands
 
-```bash
+Inspect the dataset:
+
+``` bash
 python -m backend.evaluation dataset-info --dataset evaluation/datasets/capstone_v1.json
+```
 
-# Small CPU smoke run
+Run a small retrieval smoke test:
+
+``` bash
 python -m backend.evaluation retrieve \
-  --dataset evaluation/datasets/capstone_v1.json --top-k 5 --limit 5
+  --dataset evaluation/datasets/capstone_v1.json \
+  --top-k 5 \
+  --limit 5
+```
 
-# Full verified retrieval comparison
+Run the full retrieval comparison:
+
+``` bash
 python -m backend.evaluation retrieve \
-  --dataset evaluation/datasets/capstone_v1.json --top-k 5
+  --dataset evaluation/datasets/capstone_v1.json \
+  --top-k 5
+```
 
+List recorded runs:
+
+``` bash
 python -m backend.evaluation list-runs
 ```
 
-Optional answer generation (needs Ollama; slower):
+Optional answer-generation evaluation requires Ollama:
 
-```bash
+``` bash
 python -m backend.evaluation answers \
-  --dataset evaluation/datasets/capstone_v1.json --limit 3
+  --dataset evaluation/datasets/capstone_v1.json \
+  --limit 3
 ```
 
----
+## API overview
 
-## API endpoints
+  ---------------------------------------------------------------------------
+  Method                  Endpoint                    Purpose
+  ----------------------- --------------------------- -----------------------
+  `GET`                   `/health`                   Backend, ChromaDB, and
+                                                      Ollama health
+                                                      information
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/health` | Backend / Chroma / Ollama flags + counts |
-| `POST` | `/upload` | Index a PDF (`201` / `409` duplicate) |
-| `GET` | `/documents` | List registry records |
-| `GET` | `/documents/{id}` | One record |
-| `PUT` | `/documents/{id}` | Replace PDF |
-| `DELETE` | `/documents/{id}` | Delete file, vectors, BM25, registry row |
-| `POST` | `/chat` | Ask; optional `document_ids` or legacy `source` |
-| `POST/GET/PATCH/DELETE` | `/sessions[/{id}]` | Conversation CRUD |
-| `DELETE` | `/sessions/{id}/messages` | Clear messages; keep session + title |
+  `POST`                  `/upload`                   Upload and index a PDF
 
----
+  `GET`                   `/documents`                List document registry
+                                                      records
+
+  `GET`                   `/documents/{id}`           Retrieve one document
+                                                      record
+
+  `PUT`                   `/documents/{id}`           Replace a document
+
+  `DELETE`                `/documents/{id}`           Delete a document and
+                                                      indexed data
+
+  `POST`                  `/chat`                     Ask a question,
+                                                      optionally scoped by
+                                                      `document_ids`
+
+  `POST`, `GET`, `PATCH`, `/sessions`                 Conversation session
+  `DELETE`                                            operations
+
+  `DELETE`                `/sessions/{id}/messages`   Clear messages while
+                                                      retaining the session
+  ---------------------------------------------------------------------------
+
+See the FastAPI interactive documentation at `/docs` for request and
+response schemas.
 
 ## Tests
 
-```bash
-pytest
+Run the configured test suite:
+
+``` bash
+python -m pytest
 ```
 
-Hermetic suites only (`pytest.ini`): document lifecycle, API, reliability, evaluation metrics, system QA workflows, frontend AppTest, CPU config, conversation persistence.
+The hermetic suites cover document lifecycle, API behaviour,
+reliability, evaluation metrics, system QA workflows, frontend AppTest,
+CPU configuration, and conversation persistence. Older manual test
+scripts that load real models and interact with the live vector database
+are excluded by `pytest.ini`.
 
-Phase 6 result: **104 passed**, 0 failed, 0 skipped.
+-   Previously recorded Linux run: **104 passed**.
+-   Latest Windows run during portfolio preparation: **99 passed, 3
+    failed, and 4 errors**.
 
-Older `tests/test_*.py` scripts that load real models into the live `vector_db/` are **excluded** on purpose.
+The Windows run was not fully green; do not describe the test suite as
+passing on Windows until those failures and errors are resolved.
 
----
+## Project structure
 
-## Project layout
-
+``` text
+rag-pdf-chatbot/
+├── backend/          # FastAPI application and RAG pipeline
+├── frontend/         # Streamlit multipage application
+├── evaluation/       # Evaluation dataset and documentation
+├── docs/             # Architecture and evaluation documentation
+├── tests/            # Automated test suites
+├── data/             # Local uploads and SQLite databases (gitignored)
+├── vector_db/        # ChromaDB persistence (gitignored)
+├── requirements.txt  # Runtime and testing dependencies
+├── pytest.ini
+└── README.md
 ```
-backend/           FastAPI app, RAG modules, evaluation package
-frontend/          Streamlit multipage UI
-evaluation/        Datasets, README, local results (gitignored JSON)
-docs/              Architecture, published eval summary, LinkedIn drafts, screenshots guide
-tests/             Hermetic pytest suites
-data/              Local runtime DBs + uploads (gitignored)
-vector_db/         Chroma persistence (gitignored)
-```
-
----
 
 ## Limitations
 
-- No authentication or multi-tenant isolation
-- Synchronous indexing inside upload/replace requests
-- `page_count` counts pages with extractable text, not scanned blank pages
-- Page-level evaluation labels inflate Precision when many chunks share a page
-- Faithfulness / answer relevance are manual; not auto-scored
-- Opening Chroma can rewrite `vector_db/chroma.sqlite3` internals even for reads
-- First model load on CPU is slow; needs disk space for Hugging Face caches
-- Linux-verified packaging; Windows not re-tested in Phase 7
+-   Authentication and multi-user isolation are not implemented.
+-   Document indexing runs synchronously during upload and replacement.
+-   `page_count` represents pages with extractable text; scanned-page
+    OCR is not included.
+-   Page-level evaluation labels can affect Precision when multiple
+    chunks belong to the same page.
+-   Faithfulness and answer relevance are not automatically scored.
+-   The first model load can be slow on CPU and requires disk space for
+    model caches.
+-   The latest Windows test run was not fully green.
 
----
+## Potential next improvements
 
-## Future improvements
-
-- OCR for scanned PDFs and better table extraction
-- Background indexing jobs
-- Auth and per-user document scopes
-- Token-aware chunking
-- Docker Compose + CI
-- Larger labelled evaluation set with chunk-id labels
-- Optional streaming answers once stable with Ollama
-
----
+-   OCR support for scanned PDFs and improved table extraction.
+-   Background document indexing jobs.
+-   Authentication and per-user document access controls.
+-   Token-aware chunking.
+-   Docker Compose and continuous integration.
+-   A larger evaluation set with chunk-level labels.
+-   Streaming responses after stability testing with Ollama.
 
 ## Configuration
 
-| Variable | Default | Meaning |
-|---|---|---|
-| `DATA_DIR` | `data` | Uploads + SQLite DBs |
-| `VECTOR_DB_DIR` | `vector_db` | Chroma directory |
-| `MAX_UPLOAD_MB` | `20` | Upload size limit |
-| `CHUNK_SIZE` / `CHUNK_OVERLAP` | `1000` / `200` | Chunking |
-| `PRUNE_ORPHAN_VECTORS` | `false` | Optional orphan vector deletion at reconcile |
-| `RAG_API_URL` | `http://127.0.0.1:8000` | Streamlit → API |
-| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Health probe target |
-| `OLLAMA_HEALTH_TIMEOUT` | `1` | Seconds |
+  ----------------------------------------------------------------------------
+  Variable                  Default                    Purpose
+  ------------------------- -------------------------- -----------------------
+  `DATA_DIR`                `data`                     Uploads and SQLite
+                                                       databases
 
-Copy `.env.example` to `.env` for local overrides. Never commit `.env`.
+  `VECTOR_DB_DIR`           `vector_db`                ChromaDB persistence
+                                                       directory
 
----
+  `MAX_UPLOAD_MB`           `20`                       Maximum upload size
 
-## License / privacy
+  `CHUNK_SIZE`              `1000`                     Text chunk size
 
-Do not commit personal PDFs, API keys, or full evaluation JSON dumps that embed document text. Use `.gitignore` defaults and the published aggregate summary in `docs/evaluation_results.md`.
+  `CHUNK_OVERLAP`           `200`                      Chunk overlap
+
+  `PRUNE_ORPHAN_VECTORS`    `false`                    Optional orphan-vector
+                                                       cleanup during
+                                                       reconciliation
+
+  `RAG_API_URL`             `http://127.0.0.1:8000`    Streamlit-to-API URL
+
+  `OLLAMA_BASE_URL`         `http://127.0.0.1:11434`   Ollama health-check
+                                                       target
+
+  `OLLAMA_HEALTH_TIMEOUT`   `1`                        Health-check timeout in
+                                                       seconds
+  ----------------------------------------------------------------------------
+
+Never commit `.env`, private PDFs, API keys, or evaluation result dumps
+containing source-document text.
+
+## License and privacy
+
+Keep personal documents, secrets, and full evaluation JSON files
+containing document text out of the repository. Use the provided
+`.gitignore`.
+
+No license has been specified in this repository yet. Add a license file
+if you intend to grant others explicit permission to use, modify, and
+distribute the project.
