@@ -6,7 +6,6 @@ FastAPI backend · Streamlit multipage UI · ChromaDB dense retrieval · BM25 ·
 
 > **Status:** Capstone Phases 2–6 are complete (reliability, multi-document chat, UI, evaluation, QA). This is a portfolio / demo system, **not** a hosted production product. Authentication and multi-user isolation are not implemented.
 
-Verified on **Linux** with Python **3.10**, Intel CPU, no NVIDIA GPU. Windows install steps are documented but were not re-verified in this packaging pass.
 
 ---
 
