@@ -1,69 +1,149 @@
-# Secrets and local configuration
+# ==================================================
+# SECRETS & LOCAL CONFIGURATION
+# ==================================================
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+secrets/
+credentials/
 
-# Runtime data (user PDFs, SQLite databases, vector store)
+# ==================================================
+# PYTHON
+# ==================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ==================================================
+# VIRTUAL ENVIRONMENTS
+# ==================================================
+.venv/
+venv/
+env/
+ENV/
+
+# ==================================================
+# LOCAL DATA & USER UPLOADS
+# ==================================================
 data/*
 !data/uploads/
 data/uploads/*
 !data/uploads/.gitkeep
-vector_db/*
-!vector_db/.gitkeep
-# Safety net if DBs are ever created at repo root
+
+uploads/
+uploaded_files/
+documents/
+
+# ==================================================
+# DATABASES
+# ==================================================
+*.db
+*.sqlite
+*.sqlite3
 documents.db
 conversations.db
-*.db
 
-# Evaluation run outputs contain retrieved chunk text and local registry IDs.
-# Keep the folder, publish aggregate summaries under docs/ instead.
+# ==================================================
+# VECTOR DATABASE & PERSISTENCE
+# ==================================================
+vector_db/*
+!vector_db/.gitkeep
+
+chroma_db/
+chromadb/
+vectorstore/
+vectors/
+storage/
+
+# ==================================================
+# EVALUATION OUTPUTS
+# ==================================================
 evaluation/results/*
 !evaluation/results/.gitkeep
+
 evaluation/manual_reviews/*
 !evaluation/manual_reviews/.gitkeep
 !evaluation/manual_reviews/template.json
 
-# Local screenshot captures (instructions live in docs/screenshots/README.md)
+# ==================================================
+# GENERATED REPORTS & EXPERIMENT OUTPUTS
+# ==================================================
+reports/generated/
+outputs/
+artifacts/
+experiments/
+checkpoints/
 
-docs/screenshots/*.jpg
-docs/screenshots/*.jpeg
-docs/screenshots/*.webp
+# ==================================================
+# ML MODELS & CACHES
+# ==================================================
+.cache/
+cache/
+models/
+model_cache/
+huggingface/
+**/sentence-transformers/
+**/torch_extensions/
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
+# ==================================================
+# JUPYTER
+# ==================================================
+.ipynb_checkpoints/
+
+# ==================================================
+# TESTING & COVERAGE
+# ==================================================
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
+coverage.xml
 htmlcov/
-.venv/
-venv/
-env/
-*.egg-info/
-dist/
-build/
 
-# Model / Hugging Face caches (if created inside the project)
-.cache/
-models/
-**/sentence-transformers/
-**/torch_extensions/
-
-# Logs and temp
+# ==================================================
+# LOGS & TEMPORARY FILES
+# ==================================================
+logs/
 *.log
 *.tmp
+*.temp
 *.part
-.DS_Store
-Thumbs.db
 
-# Personal resume exports (keep local; do not publish with the project)
+# ==================================================
+# PERSONAL FILES — NEVER PUBLISH
+# ==================================================
 Anurag_Patil_GenAI_Resume.docx
 Anurag_Patil_GenAI_Resume.pdf
 Anurag_Patil_GenAI_Resume.txt
 
-# Editors / OS
+# ==================================================
+# SCREENSHOTS — LOCAL CAPTURES
+# ==================================================
+docs/screenshots/*.jpg
+docs/screenshots/*.jpeg
+docs/screenshots/*.webp
+
+# ==================================================
+# IDE & EDITORS
+# ==================================================
 .idea/
 .vscode/
 *.swp
+*.swo
+
+# ==================================================
+# OPERATING SYSTEM
+# ==================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==================================================
+# DOCKER & ARCHIVES
+# ==================================================
+*.tar
+*.zip
+*.gz
